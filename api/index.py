@@ -67,22 +67,52 @@ import re
 def escape_mongodb_url(url: str) -> str:
     """
     Safely escapes username and password in a mongodb:// or mongodb+srv:// URL
-    if they are not already escaped.
+    by identifying the host separator (@) reliably.
     """
     if not url or "localhost" in url:
         return url
         
-    # Regex to capture: scheme, user, pass, host, and the rest
-    # Format: mongodb(+srv)://user:pass@host/rest
-    match = re.match(r"(mongodb(?:\+srv)?://)([^:]+):([^@]+)@(.+)", url)
-    if match:
-        scheme, user, password, host_and_rest = match.groups()
-        # Unquote then quote to ensure we don't double-escape
-        user_clean = urllib.parse.unquote(user)
-        pass_clean = urllib.parse.unquote(password)
+    prefix = ""
+    if url.startswith("mongodb://"):
+        prefix = "mongodb://"
+    elif url.startswith("mongodb+srv://"):
+        prefix = "mongodb+srv://"
+    else:
+        return url
         
-        return f"{scheme}{urllib.parse.quote_plus(user_clean)}:{urllib.parse.quote_plus(pass_clean)}@{host_and_rest}"
-    return url
+    creds_and_rest = url[len(prefix):]
+    if "@" not in creds_and_rest:
+        return url
+        
+    # Find the host part - it starts after the last '@' that precedes the first '/'
+    first_slash = creds_and_rest.find("/")
+    if first_slash != -1:
+        host_area = creds_and_rest[:first_slash]
+        path_area = creds_and_rest[first_slash:]
+    else:
+        host_area = creds_and_rest
+        path_area = ""
+        
+    if "@" not in host_area:
+        return url
+        
+    # The last '@' in the host_area is the separator between credentials and host
+    last_at = host_area.rfind("@")
+    creds = host_area[:last_at]
+    host_only = host_area[last_at:] # includes the '@'
+    
+    if ":" not in creds:
+        user_clean = urllib.parse.unquote(creds)
+        return f"{prefix}{urllib.parse.quote_plus(user_clean)}{host_only}{path_area}"
+    
+    first_colon = creds.find(":")
+    user = creds[:first_colon]
+    password = creds[first_colon+1:]
+    
+    user_clean = urllib.parse.unquote(user)
+    pass_clean = urllib.parse.unquote(password)
+    
+    return f"{prefix}{urllib.parse.quote_plus(user_clean)}:{urllib.parse.quote_plus(pass_clean)}{host_only}{path_area}"
 
 # MongoDB Connection
 MONGO_USER = os.getenv("MONGO_USER")
@@ -102,12 +132,27 @@ else:
     raw_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     MONGODB_URL = escape_mongodb_url(raw_url)
     DATABASE_NAME = os.getenv("DATABASE_NAME", MONGO_DB)
+    
     if "localhost" in MONGODB_URL:
         print(f"Connecting to Local MongoDB: {MONGODB_URL}")
     else:
-        # Mask credentials in log
-        masked_url = re.sub(r":([^@]+)@", ":****@", MONGODB_URL)
-        print(f"Connecting to MongoDB via MONGODB_URL: {masked_url[:50]}...")
+        # Robust masking for logs: find last '@' before first '/' or end of string
+        log_url = MONGODB_URL
+        prefix_len = log_url.find("//") + 2 if "//" in log_url else 0
+        creds_rest = log_url[prefix_len:]
+        first_sl = creds_rest.find("/")
+        host_a = creds_rest[:first_sl] if first_sl != -1 else creds_rest
+        
+        if "@" in host_a:
+            last_a = host_a.rfind("@")
+            crd = host_a[:last_a]
+            if ":" in crd:
+                col = crd.find(":")
+                log_url = log_url[:prefix_len] + crd[:col] + ":****" + log_url[prefix_len + last_a:]
+            else:
+                log_url = log_url[:prefix_len] + "****" + log_url[prefix_len + last_a:]
+                
+        print(f"Connecting to MongoDB via MONGODB_URL: {log_url[:60]}...")
 
 # Initializing Client
 try:
