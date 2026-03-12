@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, APIRouter
+from fastapi import FastAPI, HTTPException, APIRouter, BackgroundTasks
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -213,6 +213,21 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Could not validate credentials.")
 
 
+# ─── Cleanup Helpers ──────────────────────────────────────────────────────────
+
+def cleanup_expired_otps():
+    """Removes all expired OTPs from the in-memory store."""
+    now = datetime.utcnow()
+    expired_emails = [
+        email for email, record in otp_store.items() 
+        if now > record.get("expires_at", now)
+    ]
+    for email in expired_emails:
+        del otp_store[email]
+    if expired_emails:
+        print(f"DEBUG: Cleaned up {len(expired_emails)} expired OTPs from memory.")
+
+
 # ─── OTP Helpers ──────────────────────────────────────────────────────────────
 
 def generate_otp(length: int = 6) -> str:
@@ -269,7 +284,10 @@ def send_otp_email(to_email: str, otp: str) -> None:
 api_router = APIRouter(prefix="/api")
 
 @api_router.post("/send-otp")
-async def send_otp(request: OtpRequest):
+async def send_otp(request: OtpRequest, background_tasks: BackgroundTasks):
+    # Trigger proactive cleanup
+    background_tasks.add_task(cleanup_expired_otps)
+    
     # Log incoming request for diagnostics (safe log)
     print(f"OTP request for: {request.email}")
     
