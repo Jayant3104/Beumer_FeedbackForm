@@ -521,6 +521,12 @@ async function verifyOtp() {
                     <span>✅ Email Verified</span>
                 </div>
             `;
+            
+            // Store JWT token for subsequent requests
+            if (data.access_token) {
+                localStorage.setItem('feedback_token', data.access_token);
+            }
+            
             document.getElementById('email').disabled = true;
             document.getElementById('sendOtpBtn').style.display = 'none';
             document.getElementById('otpStatus').innerText = 'Verification successful! Moving to next page...';
@@ -562,12 +568,27 @@ function toggleProductDetails() {
 // Submit Logic
 async function submitForm() {
     try {
+        const token = localStorage.getItem('feedback_token');
+        const headers = { 'Content-Type': 'application/json' };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch('/api/submit-feedback', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify(formData)
         });
+        
         const data = await response.json();
+        
+        if (response.status === 401) {
+            alert('Your session has expired. Please verify your email again.');
+            goToPage(2); // Go back to contact details page
+            return;
+        }
+
         if (data.status === 'success') {
             goToPage(6); // Success page
         }

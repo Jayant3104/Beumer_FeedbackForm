@@ -14,6 +14,9 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
+import jwt
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends
 
 
 # Load environment variables
@@ -60,6 +63,12 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
+
+# JWT Configuration
+JWT_SECRET = os.getenv("JWT_SECRET", "beumer_default_secret_key_change_me")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+security = HTTPBearer()
 
 import urllib.parse
 import re
@@ -181,6 +190,29 @@ class FeedbackData(BaseModel):
     sectionD_BucketElevator: Optional[Dict[str, Any]] = None
 
 
+# ─── JWT Helpers ──────────────────────────────────────────────────────────────
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid session. Please verify your email again.")
+        return email
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Session expired. Please verify your email again.")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Could not validate credentials.")
+
+
 # ─── OTP Helpers ──────────────────────────────────────────────────────────────
 
 def generate_otp(length: int = 6) -> str:
@@ -283,11 +315,20 @@ async def verify_otp(request: OtpVerify):
         raise HTTPException(status_code=400, detail="Incorrect OTP. Please try again.")
 
     del otp_store[request.email]
-    return {"status": "success", "message": "Email verified successfully!"}
+    
+    # Issue JWT on successful verification
+    access_token = create_access_token(data={"sub": request.email})
+    
+    return {
+        "status": "success", 
+        "message": "Email verified successfully!",
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 
 @api_router.post("/submit-feedback")
-async def submit_feedback(data: FeedbackData):
+async def submit_feedback(data: FeedbackData, current_user: str = Depends(get_current_user)):
     try:
         feedback_dict = data.model_dump()
         feedback_dict["created_at"] = datetime.utcnow()
