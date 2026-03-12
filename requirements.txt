@@ -3,5 +3,5 @@ uvicorn
 pydantic[email]
 python-dotenv
 motor==3.6.0
-pymongo==4.8.2
+pymongo>=4.9,<4.10
 aiofiles
