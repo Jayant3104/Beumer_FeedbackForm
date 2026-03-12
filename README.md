@@ -4,79 +4,66 @@ A modern, responsive multi-page feedback system for Beumer Digitalization. This 
 
 ## 🚀 Features
 
-- **OTP Verification**: Secure email-based OTP system using Gmail SMTP.
-- **Dynamic Multi-page Form**: Smooth transitions between form sections.
-- **Conditional Logic**: Shows specific feedback fields based on product selection (FillPac/Bucket Elevator).
-- **Responsive Design**: Mobile-friendly UI with modern glassmorphism aesthetics.
-- **FastAPI Backend**: High-performance asynchronous API.
-- **MongoDB Integration**: Flexible data storage for feedback submissions.
+- **OTP Verification**: Secure email-based OTP system with robust error handling.
+- **Dynamic Multi-page Form**: Smooth, animated transitions between form sections.
+- **Conditional Logic**: Automatically shows/skips feedback fields based on product selection.
+- **Responsive Design**: Mobile-first UI with premium aesthetics, glassmorphism, and custom branding.
+- **FastAPI Backend**: Asynchronous Python API optimized for Vercel Serverless.
+- **MongoDB Integration**: Secure data storage with automatic credential escaping for complex passwords.
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: HTML5, CSS3 (Vanilla), JavaScript (ES6+)
-- **Backend**: Python 3.11+, FastAPI, Uvicorn
+- **Backend**: Python 3.12 (FastAPI)
 - **Database**: MongoDB Atlas (Motor Async Driver)
-- **Email**: SMTP (Gmail App Passwords)
+- **Deployment**: Vercel (Serverless Functions)
 
 ## 📁 Project Structure
 
 ```text
 Beumer_FeedbackForm/
 ├── api/
-│   └── index.py            # Core Backend Logic (FastAPI)
+│   └── index.py            # FastAPI Entry Point (Serverless Function)
 ├── static/                 # Frontend Assets
-│   ├── index.html          # Main Entry Point
-│   ├── style.css           # Custom Styles
-│   ├── script.js           # Form & UI Logic
-│   └── assets/             # Images & Icons
-├── backend/
-│   └── .env                # Environment Variables (Local)
-├── requirements.txt        # Python Dependencies
+│   ├── index.html          # Main SPA Entry
+│   ├── style.css           # Modern Custom Styles
+│   ├── script.js           # Interactive UI Logic
+│   └── assets/             # Branding Assets (Official Logos)
+├── vercel.json             # Vercel Routing Configuration
+├── requirements.txt        # Backend Dependencies
 └── README.md               # Project Documentation
 ```
 
 ## ⚙️ Setup & Installation
 
 ### 1. Prerequisites
-- Python 3.11 or higher installed.
-- A MongoDB Atlas account (free tier works great).
-- A Gmail account with an [App Password](https://myaccount.google.com/apppasswords) created.
+- Python 3.12 or higher.
+- MongoDB Atlas account.
+- Gmail App Password for SMTP.
 
-### 2. Configure Environment `.env`
-Create a file at `backend/.env` with the following content:
+### 2. Local Configuration
+Create a `.env` file in the root or `backend/` folder:
 ```env
-# SMTP Configuration
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-16-digit-app-password
-SMTP_FROM=your-email@gmail.com
-
-# MongoDB Atlas Configuration
-MONGO_USER=your-db-user
-MONGO_PASS=your-db-pass
-MONGO_HOST=cluster-url.mongodb.net
-MONGO_DB=Cluster0
+SMTP_PASSWORD=your-app-password
+MONGODB_URL=mongodb+srv://user:pass@cluster.mongodb.net/dbname
 ```
 
-### 3. Install Dependencies
+### 3. Run Locally
 ```bash
 pip install -r requirements.txt
-```
-
-### 4. Run Locally
-```bash
 uvicorn api.index:app --reload
 ```
-Open **http://localhost:8000** in your browser.
 
-## 🚢 Deployment (Render)
+## 🚢 Deployment (Vercel)
 
-1. Connect your Github repository to **Render**.
-2. Create a new **Web Service**.
-3. Set Build Command: `pip install -r requirements.txt`
-4. Set Start Command: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
-5. Upload your `.env` file via Render's **Secret Files** feature.
+1. **Push to GitHub**: Ensure your latest code is pushed to your repository.
+2. **Import to Vercel**: Connect your GitHub account and import `Beumer_FeedbackForm`.
+3. **Environment Variables**: Add `MONGODB_URL`, `SMTP_USER`, `SMTP_PASSWORD`, etc., in Vercel Project Settings.
+4. **Deploy**: Vercel will automatically detect the Python API and deploy it as a Serverless Function.
 
 ---
-Produced for Beumer Digitalization by Antigravity.
+
+---
