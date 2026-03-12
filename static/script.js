@@ -480,7 +480,11 @@ async function sendOtp() {
             btn.innerText = 'Resend OTP';
         } else {
             const errorMsg = result.data.detail || 'Service unavailable';
-            otpStatus.innerText = `Error: ${errorMsg}`;
+            if (result.status === 429) {
+                otpStatus.innerText = errorMsg; // Already includes "Please wait X seconds"
+            } else {
+                otpStatus.innerText = `Error: ${errorMsg}`;
+            }
             otpStatus.className = 'otp-status error';
             btn.innerText = 'Retry Sending';
             console.error('OTP Error:', result.data);

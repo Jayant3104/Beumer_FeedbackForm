@@ -282,10 +282,23 @@ async def send_otp(request: OtpRequest):
         )
 
     try:
+        # Check for cooldown (Rate Limiting)
+        if request.email in otp_store:
+            record = otp_store[request.email]
+            # If the last OTP was sent less than 60 seconds ago
+            age = datetime.utcnow() - record.get("requested_at", datetime.min)
+            if age < timedelta(seconds=60):
+                remaining = 60 - int(age.total_seconds())
+                raise HTTPException(
+                    status_code=429, 
+                    detail=f"Please wait {remaining} seconds before requesting a new code."
+                )
+
         otp = generate_otp()
         otp_store[request.email] = {
             "otp": otp,
-            "expires_at": datetime.utcnow() + timedelta(minutes=10)
+            "expires_at": datetime.utcnow() + timedelta(minutes=10),
+            "requested_at": datetime.utcnow()
         }
         send_otp_email(str(request.email), otp)
         print(f"Successfully sent OTP to {request.email}")
