@@ -62,6 +62,27 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
 
 import urllib.parse
+import re
+
+def escape_mongodb_url(url: str) -> str:
+    """
+    Safely escapes username and password in a mongodb:// or mongodb+srv:// URL
+    if they are not already escaped.
+    """
+    if not url or "localhost" in url:
+        return url
+        
+    # Regex to capture: scheme, user, pass, host, and the rest
+    # Format: mongodb(+srv)://user:pass@host/rest
+    match = re.match(r"(mongodb(?:\+srv)?://)([^:]+):([^@]+)@(.+)", url)
+    if match:
+        scheme, user, password, host_and_rest = match.groups()
+        # Unquote then quote to ensure we don't double-escape
+        user_clean = urllib.parse.unquote(user)
+        pass_clean = urllib.parse.unquote(password)
+        
+        return f"{scheme}{urllib.parse.quote_plus(user_clean)}:{urllib.parse.quote_plus(pass_clean)}@{host_and_rest}"
+    return url
 
 # MongoDB Connection
 MONGO_USER = os.getenv("MONGO_USER")
@@ -76,14 +97,17 @@ if MONGO_USER and MONGO_PASS and MONGO_HOST:
     pass_escaped = urllib.parse.quote_plus(MONGO_PASS)
     MONGODB_URL = f"mongodb+srv://{user_escaped}:{pass_escaped}@{MONGO_HOST}/?retryWrites=true&w=majority"
     DATABASE_NAME = MONGO_DB
-    print(f"Connecting to MongoDB Atlas: {MONGO_HOST}")
+    print(f"Connecting to MongoDB Atlas (via individual vars): {MONGO_HOST}")
 else:
-    MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    raw_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    MONGODB_URL = escape_mongodb_url(raw_url)
     DATABASE_NAME = os.getenv("DATABASE_NAME", MONGO_DB)
     if "localhost" in MONGODB_URL:
         print(f"Connecting to Local MongoDB: {MONGODB_URL}")
     else:
-        print(f"Connecting to MongoDB via MONGODB_URL: {MONGODB_URL[:20]}...")
+        # Mask credentials in log
+        masked_url = re.sub(r":([^@]+)@", ":****@", MONGODB_URL)
+        print(f"Connecting to MongoDB via MONGODB_URL: {masked_url[:50]}...")
 
 # Initializing Client
 try:
