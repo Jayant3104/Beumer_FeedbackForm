@@ -24,6 +24,11 @@ The application follows a modern **Serverless Client-Server** architecture:
 - **Motor**: Non-blocking Python driver for MongoDB.
 - **Pydantic**: Robust data validation and serialization.
 
+### Security
+- **PyJWT**: For generating and validating signed access tokens.
+- **Secrets Module**: For cryptographically secure OTP generation.
+- **BackgroundTasks**: For proactive memory cleanup of expired OTPs.
+
 ### Infrastructure
 - **Vercel**: Global edge network and serverless computing platform.
 - **MongoDB Atlas**: Fully-managed cloud database.
@@ -60,7 +65,8 @@ graph TD
 2.  **Generation**: Backend generates a 6-digit code and stores it in an in-memory dictionary with a 10-minute TTL.
 3.  **Transit**: Backend sends the code via SMTP (STARTTLS/SSL) to the user.
 4.  **Verification**: User submits the code to `/api/verify-otp`.
-5.  **Validation**: Backend validates against the store and clears the record upon success.
+5.  **Validation**: Backend validates against the store, clears the record, and **issues a JWT token**.
+6.  **Authorization**: The token is stored in `localStorage` and sent in the `Authorization` header for the feedback submission.
 
 ## 🗄️ Database Integration
 
@@ -78,9 +84,21 @@ Feedback is stored as JSON documents in the `feedback` collection:
     "sectionB": { ... },
     "sectionC": { "products": ["FillPac"], ... },
     "sectionD_FillPac": { ... },
-    "created_at": "ISODate"
+    "submitted_by": "user@beumer.com",
+    "created_at": "ISODate (UTC)"
 }
 ```
+
+## 🔒 Security Model
+
+### 1. Identity Binding
+The system ensures data integrity by extracting the user's email directly from the JWT payload during submission. This email is saved in the `submitted_by` field, preventing any attempts to "spoof" the feedback sender.
+
+### 2. Proactive Cleanup
+A background task runs during every OTP request to purge any expired OTPs from the server's RAM. This prevents memory leaks and potential Denial of Service (DoS) attacks via memory exhaustion.
+
+### 3. Rate Limiting
+A 60-second cooldown per email address is enforced for OTP requests. This protects the SMTP service from being used for spam and prevents excessive costs or domain blacklisting.
 
 ---
 

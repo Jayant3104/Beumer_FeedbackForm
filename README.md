@@ -4,17 +4,19 @@ A modern, responsive multi-page feedback system for Beumer Digitalization. This 
 
 ## 🚀 Features
 
-- **OTP Verification**: Secure email-based OTP system with robust error handling.
+- **JWT Authentication**: Secure, token-based authorization for feedback submissions.
+- **OTP Verification**: Secure email-based OTP system with proactive background cleanup.
+- **Rate Limiting**: Integrated 60-second cooldown on OTP requests to prevent SMTP abuse.
 - **Dynamic Multi-page Form**: Smooth, animated transitions between form sections.
 - **Conditional Logic**: Automatically shows/skips feedback fields based on product selection.
-- **Responsive Design**: Mobile-first UI with premium aesthetics, glassmorphism, and custom branding.
+- **Responsive Design**: Mobile-first UI with premium aesthetics and custom branding.
 - **FastAPI Backend**: Asynchronous Python API optimized for Vercel Serverless.
-- **MongoDB Integration**: Secure data storage with automatic credential escaping for complex passwords.
+- **MongoDB Integration**: Secure data storage with automatic identity binding to verified users.
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: HTML5, CSS3 (Vanilla), JavaScript (ES6+)
-- **Backend**: Python 3.12 (FastAPI)
+- **Backend**: Python 3.12 (FastAPI, PyJWT, Motor)
 - **Database**: MongoDB Atlas (Motor Async Driver)
 - **Deployment**: Vercel (Serverless Functions)
 
@@ -49,6 +51,8 @@ SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
 MONGODB_URL=mongodb+srv://user:pass@cluster.mongodb.net/dbname
+JWT_SECRET=your_strong_secret_key
+JWT_ALGORITHM=HS256
 ```
 
 ### 3. Run Locally
