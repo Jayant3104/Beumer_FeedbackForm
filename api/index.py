@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 import smtplib
 import random
 import string
+import secrets
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta, timezone
@@ -231,7 +232,7 @@ def cleanup_expired_otps():
 # ─── OTP Helpers ──────────────────────────────────────────────────────────────
 
 def generate_otp(length: int = 6) -> str:
-    return ''.join(random.choices(string.digits, k=length))
+    return ''.join(secrets.choice(string.digits) for _ in range(length))
 
 def send_otp_email(to_email: str, otp: str) -> None:
     msg = MIMEMultipart("alternative")
@@ -362,15 +363,17 @@ async def verify_otp(request: OtpVerify):
 async def submit_feedback(data: FeedbackData, current_user: str = Depends(get_current_user)):
     try:
         feedback_dict = data.model_dump()
-        feedback_dict["created_at"] = datetime.utcnow()
+        # Bind the feedback to the authenticated user's email
+        feedback_dict["submitted_by"] = current_user
+        feedback_dict["created_at"] = datetime.now(timezone.utc)
         
         # Insert into MongoDB
         result = await feedback_collection.insert_one(feedback_dict)
         
-        print(f"Received and saved feedback: {result.inserted_id}")
+        print(f"Received and saved feedback from {current_user}: {result.inserted_id}")
         return {"status": "success", "message": "Feedback saved successfully", "id": str(result.inserted_id)}
     except Exception as e:
-        print(f"Error saving feedback: {e}")
+        print(f"Error saving feedback for {current_user}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error while saving feedback")
 
 
