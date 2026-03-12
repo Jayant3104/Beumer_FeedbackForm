@@ -537,12 +537,18 @@ async function verifyOtp() {
                 nextPage();
             }, 1000);
         } else {
-            document.getElementById('otpStatus').innerText = data.detail || 'Invalid OTP';
+            const errorMsg = data.detail || 'Invalid OTP. Please try again.';
+            document.getElementById('otpStatus').innerText = errorMsg;
             document.getElementById('otpStatus').className = 'otp-status error';
         }
     } catch (err) {
-        console.error(err);
-        alert('Error verifying OTP');
+        console.error('OTP Verification Error:', err);
+        const statusEl = document.getElementById('otpStatus');
+        if (statusEl) {
+            statusEl.innerText = 'Network error or server is down. Please try again.';
+            statusEl.className = 'otp-status error';
+        }
+        alert('Error connecting to verification service. Please check your connection.');
     } finally {
         btn.disabled = false;
         btn.innerText = 'Verify';
