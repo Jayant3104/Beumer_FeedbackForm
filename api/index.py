@@ -1,0 +1,266 @@
+from fastapi import FastAPI, HTTPException, APIRouter
+import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, EmailStr
+from typing import Optional, Dict, Any
+import smtplib
+import random
+import string
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
+from motor.motor_asyncio import AsyncIOMotorClient
+
+
+# Load environment variables
+# Check root first, then backend folder for local dev
+load_dotenv()
+if not os.getenv("MONGO_USER") and not os.getenv("MONGODB_URL"):
+    load_dotenv("backend/.env")
+
+app = FastAPI(title="Beumer Feedback API")
+
+# Enable CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Determine the absolute path to the static directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+
+# Route for the main UI
+@app.api_route("/", methods=["GET", "HEAD"])
+async def read_index():
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"error": f"index.html not found at {index_path}. Check your directory structure."}
+
+# Mount the static directory for other assets (CSS, JS)
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+else:
+    print(f"WARNING: Static directory not found at {STATIC_DIR}")
+
+# In-memory OTP store: { email: { otp: str, expires_at: datetime } }
+otp_store: Dict[str, Dict] = {}
+
+# SMTP Config from .env
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
+
+import urllib.parse
+
+# MongoDB Connection
+MONGO_USER = os.getenv("MONGO_USER")
+MONGO_PASS = os.getenv("MONGO_PASS")
+MONGO_HOST = os.getenv("MONGO_HOST")
+MONGO_DB = os.getenv("MONGO_DB", "beumer_feedback")
+
+# Construct URL if individual variables are provided, otherwise use MONGODB_URL
+if MONGO_USER and MONGO_PASS and MONGO_HOST:
+    # Safely escape username and password for the URI
+    user_escaped = urllib.parse.quote_plus(MONGO_USER)
+    pass_escaped = urllib.parse.quote_plus(MONGO_PASS)
+    MONGODB_URL = f"mongodb+srv://{user_escaped}:{pass_escaped}@{MONGO_HOST}/?retryWrites=true&w=majority"
+    DATABASE_NAME = MONGO_DB
+    print(f"Connecting to MongoDB Atlas: {MONGO_HOST}")
+else:
+    MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    DATABASE_NAME = os.getenv("DATABASE_NAME", MONGO_DB)
+    if "localhost" in MONGODB_URL:
+        print(f"Connecting to Local MongoDB: {MONGODB_URL}")
+    else:
+        print(f"Connecting to MongoDB via MONGODB_URL: {MONGODB_URL[:20]}...")
+
+# Initializing Client
+try:
+    client = AsyncIOMotorClient(MONGODB_URL)
+    db = client[DATABASE_NAME]
+    feedback_collection = db["feedback"]
+    print(f"Successfully connected to database: {DATABASE_NAME}")
+except Exception as e:
+    print(f"Database connection failed: {e}")
+
+
+# ─── Models ───────────────────────────────────────────────────────────────────
+
+class OtpRequest(BaseModel):
+    email: EmailStr
+
+class OtpVerify(BaseModel):
+    email: EmailStr
+    otp: str
+
+class FeedbackData(BaseModel):
+    sectionA: Dict[str, Any]
+    sectionB: Dict[str, Any]
+    sectionC: Dict[str, Any]
+    sectionD_FillPac: Optional[Dict[str, Any]] = None
+    sectionD_BucketElevator: Optional[Dict[str, Any]] = None
+
+
+# ─── OTP Helpers ──────────────────────────────────────────────────────────────
+
+def generate_otp(length: int = 6) -> str:
+    return ''.join(random.choices(string.digits, k=length))
+
+def send_otp_email(to_email: str, otp: str) -> None:
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "Your Beumer Feedback Verification Code"
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+
+    html = f"""
+    <html><body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:30px;">
+      <div style="background:white;border-radius:8px;padding:30px;max-width:480px;margin:auto;">
+        <h2 style="color:#003399;">Beumer Digitalization</h2>
+        <p>Your email verification code is:</p>
+        <div style="font-size:2.5rem;font-weight:bold;letter-spacing:10px;color:#003399;
+                    background:#f0f4ff;padding:20px;border-radius:8px;text-align:center;">
+          {otp}
+        </div>
+        <p style="color:#888;margin-top:20px;">This code expires in <strong>10 minutes</strong>.</p>
+        <p style="color:#888;font-size:0.85rem;">If you didn't request this, please ignore this email.</p>
+      </div>
+    </body></html>
+    """
+    msg.attach(MIMEText(html, "html"))
+
+    try:
+        if SMTP_PORT == 465:
+            print(f"DEBUG: Attempting SMTP_SSL connection to {SMTP_HOST}:{SMTP_PORT}")
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.sendmail(SMTP_FROM, to_email, msg.as_string())
+        else:
+            print(f"DEBUG: Attempting SMTP (STARTTLS) connection to {SMTP_HOST}:{SMTP_PORT}")
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.sendmail(SMTP_FROM, to_email, msg.as_string())
+        print(f"DEBUG: Email successfully sent to {to_email}")
+    except smtplib.SMTPException as e:
+        print(f"CRITICAL SMTP ERROR: {type(e).__name__}: {str(e)}")
+        raise
+    except Exception as e:
+        print(f"CRITICAL CONNECTION ERROR: {type(e).__name__}: {str(e)}")
+        raise
+
+
+# ─── Endpoints ────────────────────────────────────────────────────────────────
+
+# API Router for namespaced endpoints
+api_router = APIRouter(prefix="/api")
+
+@api_router.post("/send-otp")
+async def send_otp(request: OtpRequest):
+    # Log incoming request for diagnostics (safe log)
+    print(f"OTP request for: {request.email}")
+    
+    # Check if SMTP is configured
+    if not SMTP_USER or not SMTP_PASSWORD:
+        print("ERROR: SMTP_USER or SMTP_PASSWORD not set in environment.")
+        raise HTTPException(
+            status_code=500, 
+            detail="Mail server is not configured. Please contact administrator."
+        )
+
+    try:
+        otp = generate_otp()
+        otp_store[request.email] = {
+            "otp": otp,
+            "expires_at": datetime.utcnow() + timedelta(minutes=10)
+        }
+        send_otp_email(str(request.email), otp)
+        print(f"Successfully sent OTP to {request.email}")
+        return {"status": "success", "message": f"OTP sent to {request.email}"}
+    except smtplib.SMTPAuthenticationError:
+        print(f"SMTP Authentication Error: Failed to login as {SMTP_USER}")
+        raise HTTPException(status_code=500, detail="Authentication failed with the email provider.")
+    except smtplib.SMTPConnectError:
+        print(f"SMTP Connection Error: Could not connect to {SMTP_HOST}:{SMTP_PORT}")
+        raise HTTPException(status_code=500, detail="Could not connect to the email server.")
+    except Exception as e:
+        print(f"Unexpected error in send_otp: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {type(e).__name__}")
+
+
+@api_router.post("/verify-otp")
+async def verify_otp(request: OtpVerify):
+    record = otp_store.get(request.email)
+    if not record:
+        raise HTTPException(status_code=400, detail="No OTP found for this email. Please request a new one.")
+
+    if datetime.utcnow() > record["expires_at"]:
+        del otp_store[request.email]
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new one.")
+
+    if request.otp != record["otp"]:
+        raise HTTPException(status_code=400, detail="Incorrect OTP. Please try again.")
+
+    del otp_store[request.email]
+    return {"status": "success", "message": "Email verified successfully!"}
+
+
+@api_router.post("/submit-feedback")
+async def submit_feedback(data: FeedbackData):
+    try:
+        feedback_dict = data.model_dump()
+        feedback_dict["created_at"] = datetime.utcnow()
+        
+        # Insert into MongoDB
+        result = await feedback_collection.insert_one(feedback_dict)
+        
+        print(f"Received and saved feedback: {result.inserted_id}")
+        return {"status": "success", "message": "Feedback saved successfully", "id": str(result.inserted_id)}
+    except Exception as e:
+        print(f"Error saving feedback: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error while saving feedback")
+
+
+@api_router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+# Include the router in the app
+app.include_router(api_router)
+
+if __name__ == "__main__":
+    # Startup Configuration Summary
+    print("\n" + "="*50)
+    print("BEUMER FEEDBACK API - STARTUP CONFIGURATION")
+    print("="*50)
+    print(f"SMTP Host: {SMTP_HOST}")
+    print(f"SMTP Port: {SMTP_PORT}")
+    print(f"SMTP User: {SMTP_USER[:3]}***@{SMTP_USER.split('@')[-1] if '@' in SMTP_USER else '???'}")
+    print(f"SMTP Auth: {'[SET]' if SMTP_PASSWORD else '[MISSING]'}")
+    print(f"MongoDB:   {DATABASE_NAME}")
+    print("="*50 + "\n")
+
+    # Check for critical environment variables on startup
+    missing_vars = []
+    if not SMTP_USER: missing_vars.append("SMTP_USER")
+    if not SMTP_PASSWORD: missing_vars.append("SMTP_PASSWORD")
+    if not os.getenv("MONGO_HOST") and not os.getenv("MONGODB_URL"):
+        missing_vars.append("MONGO_HOST or MONGODB_URL")
+    
+    if missing_vars:
+        print(f"[!] WARNING: Missing environment variables: {', '.join(missing_vars)}")
+        print("[!] OTP service or Database connection may fail.\n")
+
+    uvicorn.run(app, host="127.0.0.1", port=8000)

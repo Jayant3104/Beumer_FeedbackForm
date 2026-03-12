@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beumer - Feedback Form</title>
+    <link rel="stylesheet" href="/static/style.css?v=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <!-- Navigation Dots -->
+        <div class="nav-dots" id="navDots"></div>
+
+        <!-- Section A: Company Information -->
+        <div class="page active" id="page0">
+            <div class="header">
+                <h1>Welcome</h1>
+                <h1>Beumer Digitalization</h1>
+                <p>We value your feedback to improve our services and products.</p>
+                <img src="/static/assets/Logo-BEUMER-Group.webp" style="width: 400px;">
+            </div>
+
+            <button class="btn" onclick="nextPage()" >Start Feedback</button>
+        </div>
+
+        <div class="page" id="page1">
+            <div class="header">
+                <h1>Company Information</h1>
+                <p>Section A</p>
+            </div>
+            <div class="form-group">
+                <label>Country</label>
+                <div id="dropdown-country" class="custom-dropdown"></div>
+            </div>
+            <div class="form-group">
+                <label>Company Name</label>
+                <input type="text" id="companyName" placeholder="Enter company name">
+            </div>
+            <div class="form-group">
+                <label>Plant Location</label>
+                <input type="text" id="plantLocation" placeholder="Enter plant location">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevPage()">Back</button>
+                <button class="btn" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+
+        <!-- Section B: Personal Information -->
+        <div class="page" id="page2">
+            <div class="header">
+                <h1>Contact Details</h1>
+                <p>Section B</p>
+            </div>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="name" placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label>Designation</label>
+                <div id="dropdown-designation" class="custom-dropdown"></div>
+            </div>
+            <div class="form-group">
+                <label>Contact Number (Optional)</label>
+                <input type="tel" id="contact" placeholder="Enter contact number">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <div class="input-with-action">
+                    <input type="email" id="email" placeholder="Enter email address" oninput="resetEmailVerification()">
+                    <button class="btn-action" id="sendOtpBtn" onclick="sendOtp()">Send OTP</button>
+                </div>
+                <div id="otpGroup" style="display: none; margin-top: 15px;">
+                    <label>Verification Code</label>
+                    <div class="input-with-action">
+                        <input type="text" id="otpInput" placeholder="6-digit code" maxlength="6">
+                        <button class="btn-action" id="verifyOtpBtn" onclick="verifyOtp()">Verify</button>
+                    </div>
+                </div>
+                <div id="otpStatus" class="otp-status"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevPage()">Back</button>
+                <button class="btn" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+
+        <!-- Section C: Product Information -->
+        <div class="page" id="page3">
+            <div class="header">
+                <h1>Product Selection</h1>
+                <p>Section C</p>
+            </div>
+
+            <div class="form-group">
+                <label>Select Product(s) used in your plant</label>
+                <div class="checkbox-group" id="product-selection">
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="product" value="FillPac" onchange="toggleProductDetails()">
+                        <span>BEUMER FillPac®</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="product" value="BucketElevator" onchange="toggleProductDetails()">
+                        <span>Bucket Elevator Condition Monitoring</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Conditional: FillPac Details -->
+            <div id="fillPacDetails" style="display: none;" class="conditional-section">
+                <h3>BEUMER FillPac® Details</h3>
+                <div class="form-group">
+                    <label>No. of Units</label>
+                    <div id="dropdown-fpUnits" class="custom-dropdown"></div>
+                </div>
+                <div class="form-group">
+                    <label>No. of Units for which OEE dashboard is required</label>
+                    <div id="dropdown-fpOeeUnits" class="custom-dropdown"></div>
+                </div>
+                <div class="form-group">
+                    <label>Types of FillPac (Spouts)</label>
+                    <div id="dropdown-fpSpouts" class="custom-dropdown"></div>
+                </div>
+                <div class="form-group">
+                    <label>Installation Date</label>
+                    <input type="date" id="fpDate">
+                </div>
+                <div class="form-group">
+                    <label>Interested in Services</label>
+                    <div class="checkbox-group" id="fpServices">
+                        <label class="checkbox-item"><input type="checkbox" value="Dashboard">
+                            <span>Dashboard</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="Maintenance">
+                            <span>Maintenance</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="Automation"> <span>Process
+                                Automation</span></label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conditional: Bucket Elevator Details -->
+            <div id="beDetails" style="display: none;" class="conditional-section">
+                <h3>Bucket Elevator Details</h3>
+                <div class="form-group">
+                    <label>No. of Units</label>
+                    <div id="dropdown-beUnits" class="custom-dropdown"></div>
+                </div>
+                <div class="form-group">
+                    <label>No. of Units with Condition Monitoring</label>
+                    <div id="dropdown-beMonitoring" class="custom-dropdown"></div>
+                </div>
+                <div class="form-group">
+                    <label>Type of Bucket Elevator</label>
+                    <input type="text" id="beType" placeholder="e.g. Belt / Chain">
+                </div>
+                <div class="form-group">
+                    <label>Installation Date</label>
+                    <input type="date" id="beDate">
+                </div>
+                <div class="form-group">
+                    <label>Is it currently working efficiently?</label>
+                    <input type="text" id="beEfficient" placeholder="Yes / No (Brief reason)">
+                </div>
+                <div class="form-group">
+                    <label>Any issue with Belt Slippage / Wobbling?</label>
+                    <input type="text" id="beSlippage" placeholder="Details">
+                </div>
+                <div class="form-group">
+                    <label>Current Annual Maintenance Cost</label>
+                    <input type="text" id="beCost" placeholder="Approx estimation">
+                </div>
+                <div class="form-group">
+                    <label>Interested in Services</label>
+                    <div class="checkbox-group" id="beServices">
+                        <label class="checkbox-item"><input type="checkbox" value="Automation">
+                            <span>Automation</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="Optimization"> <span>System
+                                Optimization</span></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevPage()">Back</button>
+                <button class="btn" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+
+        <!-- Section D: FillPac Feedback -->
+        <div class="page" id="page4">
+            <div class="header">
+                <h1>FillPac Feedback</h1>
+                <p>Section D</p>
+            </div>
+
+            <div class="feedback-grid">
+                <div class="form-group">
+                    <label>Is OEE data accurate?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_oee_accurate" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_oee_accurate" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Is Performance data accurate?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_perf_accurate" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_perf_accurate" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Is Quality data accurate?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_qual_accurate" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_qual_accurate" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Is Availability data accurate?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_avail_accurate" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_avail_accurate" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Do no. of bags match with Physical stock?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_bags_match" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_bags_match" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Frequency of data generation</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_data_freq" value="Real-time"> Real-time</label>
+                        <label><input type="radio" name="fp_data_freq" value="Daily"> Daily</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Helps in identifying bottlenecks?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_bottlenecks" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_bottlenecks" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Is any other metric useful for you?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_useful_metric" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_useful_metric" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Missing features in dashboard?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_missing_features" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_missing_features" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Are fault information alerts useful?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_fault_info" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_fault_info" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Is Average bag weight info useful?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_bag_info" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_bag_info" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Is the dashboard user-friendly?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="fp_user_friendly" value="Yes"> Yes</label>
+                        <label><input type="radio" name="fp_user_friendly" value="No"> No</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group full-width">
+                <label>Suggestion for better visualizations</label>
+                <textarea id="fpVisualizations" rows="3" placeholder="Tell us more..."></textarea>
+            </div>
+            <div class="form-group full-width">
+                <label>Overall comments / suggestions</label>
+                <textarea id="fpComments" rows="3" placeholder="Any additional feedback..."></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevPage()">Back</button>
+                <button class="btn" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+
+        <!-- Section D: Bucket Elevator Condition Monitoring Dashboard Feedback -->
+        <div class="page" id="page5">
+            <div class="header">
+                <h1>Bucket Elevator Monitoring</h1>
+                <p>Section D feedback</p>
+            </div>
+
+            <div class="feedback-grid">
+                <div class="form-group">
+                    <label>Did you understand the displayed monitoring data?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="be_understanding" value="Yes"> Yes</label>
+                        <label><input type="radio" name="be_understanding" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Effectiveness for predictive maintenance?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="be_effectiveness" value="High"> High</label>
+                        <label><input type="radio" name="be_effectiveness" value="Medium"> Medium</label>
+                        <label><input type="radio" name="be_effectiveness" value="Low"> Low</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Are you satisfied with the training provided?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="be_training_satisfaction" value="Yes"> Yes</label>
+                        <label><input type="radio" name="be_training_satisfaction" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Is the dashboard user-friendly?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="be_user_friendly" value="Yes"> Yes</label>
+                        <label><input type="radio" name="be_user_friendly" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Frequency of dashboard usage</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="be_usage_freq" value="Daily"> Daily</label>
+                        <label><input type="radio" name="be_usage_freq" value="Weekly"> Weekly</label>
+                        <label><input type="radio" name="be_usage_freq" value="Rarely"> Rarely</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Did the system help reduce breakdowns?</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="be_reduced_breakdowns" value="Significant"> Significant</label>
+                        <label><input type="radio" name="be_reduced_breakdowns" value="Slightly"> Slightly</label>
+                        <label><input type="radio" name="be_reduced_breakdowns" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Rating for technical support</label>
+                    <div class="radio-group input-group">
+                        <label><input type="radio" name="be_support_rating" value="5"> ⭐⭐⭐⭐⭐</label>
+                        <label><input type="radio" name="be_support_rating" value="4"> ⭐⭐⭐⭐</label>
+                        <label><input type="radio" name="be_support_rating" value="3"> ⭐⭐⭐</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group full-width">
+                <label>Suggestions for improvements in Section D</label>
+                <textarea id="beSuggestionsCM" rows="3" placeholder="Tell us more..."></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevPage()">Back</button>
+                <button class="btn" onclick="nextPage()">Submit Feedback</button>
+            </div>
+        </div>
+
+        <!-- Page 7: Success Message -->
+        <div class="page" id="page6">
+            <div class="success-content">
+                <div class="success-icon">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="45" fill="#4CAF50" />
+                        <path d="M30 50 L45 65 L70 35" stroke="white" stroke-width="8" fill="none"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <h1>Thank You!</h1>
+                <p>Your feedback has been successfully submitted. We appreciate your time and input.</p>
+                <button class="btn" onclick="location.reload()">Send Another Response</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+
+</html>
