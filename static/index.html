@@ -121,7 +121,7 @@
                 <h3>BEUMER FillPac® Details</h3>
                 <div class="form-group">
                     <label>No. of Units</label>
-                    <div id="dropdown-fpUnits" class="custom-dropdown"></div>
+                    <input type="number" id="fpUnits" min="1" placeholder="Enter number of units" oninput="updateUnitFeedbackPages()">
                 </div>
                 <div class="form-group">
                     <label>No. of Units for which OEE dashboard is required</label>
@@ -153,7 +153,7 @@
                 <h3>Bucket Elevator Details</h3>
                 <div class="form-group">
                     <label>No. of Units</label>
-                    <div id="dropdown-beUnits" class="custom-dropdown"></div>
+                    <input type="number" id="beUnits" min="1" placeholder="Enter number of units" oninput="updateUnitFeedbackPages()">
                 </div>
                 <div class="form-group">
                     <label>No. of Units with Condition Monitoring</label>
@@ -196,191 +196,11 @@
             </div>
         </div>
 
-        <!-- Section D: FillPac Feedback -->
-        <div class="page" id="page4">
-            <div class="header">
-                <h1>FillPac Feedback</h1>
-                <p>Section D</p>
-            </div>
-
-            <div class="feedback-grid">
-                <div class="form-group">
-                    <label>Is OEE data accurate?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_oee_accurate" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_oee_accurate" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Is Performance data accurate?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_perf_accurate" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_perf_accurate" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Is Quality data accurate?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_qual_accurate" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_qual_accurate" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Is Availability data accurate?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_avail_accurate" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_avail_accurate" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Do no. of bags match with Physical stock?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_bags_match" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_bags_match" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Frequency of data generation</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_data_freq" value="Real-time"> Real-time</label>
-                        <label><input type="radio" name="fp_data_freq" value="Daily"> Daily</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Helps in identifying bottlenecks?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_bottlenecks" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_bottlenecks" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Is any other metric useful for you?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_useful_metric" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_useful_metric" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Missing features in dashboard?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_missing_features" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_missing_features" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Are fault information alerts useful?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_fault_info" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_fault_info" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Is Average bag weight info useful?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_bag_info" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_bag_info" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Is the dashboard user-friendly?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="fp_user_friendly" value="Yes"> Yes</label>
-                        <label><input type="radio" name="fp_user_friendly" value="No"> No</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-group full-width">
-                <label>Suggestion for better visualizations</label>
-                <textarea id="fpVisualizations" rows="3" placeholder="Tell us more..."></textarea>
-            </div>
-            <div class="form-group full-width">
-                <label>Overall comments / suggestions</label>
-                <textarea id="fpComments" rows="3" placeholder="Any additional feedback..."></textarea>
-            </div>
-
-            <div class="btn-group">
-                <button class="btn btn-secondary" onclick="prevPage()">Back</button>
-                <button class="btn" onclick="nextPage()">Next</button>
-            </div>
-        </div>
-
-        <!-- Section D: Bucket Elevator Condition Monitoring Dashboard Feedback -->
-        <div class="page" id="page5">
-            <div class="header">
-                <h1>Bucket Elevator Monitoring</h1>
-                <p>Section D feedback</p>
-            </div>
-
-            <div class="feedback-grid">
-                <div class="form-group">
-                    <label>Did you understand the displayed monitoring data?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="be_understanding" value="Yes"> Yes</label>
-                        <label><input type="radio" name="be_understanding" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Effectiveness for predictive maintenance?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="be_effectiveness" value="High"> High</label>
-                        <label><input type="radio" name="be_effectiveness" value="Medium"> Medium</label>
-                        <label><input type="radio" name="be_effectiveness" value="Low"> Low</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Are you satisfied with the training provided?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="be_training_satisfaction" value="Yes"> Yes</label>
-                        <label><input type="radio" name="be_training_satisfaction" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Is the dashboard user-friendly?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="be_user_friendly" value="Yes"> Yes</label>
-                        <label><input type="radio" name="be_user_friendly" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Frequency of dashboard usage</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="be_usage_freq" value="Daily"> Daily</label>
-                        <label><input type="radio" name="be_usage_freq" value="Weekly"> Weekly</label>
-                        <label><input type="radio" name="be_usage_freq" value="Rarely"> Rarely</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Did the system help reduce breakdowns?</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="be_reduced_breakdowns" value="Significant"> Significant</label>
-                        <label><input type="radio" name="be_reduced_breakdowns" value="Slightly"> Slightly</label>
-                        <label><input type="radio" name="be_reduced_breakdowns" value="No"> No</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Rating for technical support</label>
-                    <div class="radio-group input-group">
-                        <label><input type="radio" name="be_support_rating" value="5"> ⭐⭐⭐⭐⭐</label>
-                        <label><input type="radio" name="be_support_rating" value="4"> ⭐⭐⭐⭐</label>
-                        <label><input type="radio" name="be_support_rating" value="3"> ⭐⭐⭐</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-group full-width">
-                <label>Suggestions for improvements in Section D</label>
-                <textarea id="beSuggestionsCM" rows="3" placeholder="Tell us more..."></textarea>
-            </div>
-
-            <div class="btn-group">
-                <button class="btn btn-secondary" onclick="prevPage()">Back</button>
-                <button class="btn" onclick="nextPage()">Submit Feedback</button>
-            </div>
-        </div>
+        <!-- Dynamic Feedback Pages Container -->
+        <div id="dynamicFeedbackPages"></div>
 
         <!-- Page 7: Success Message -->
-        <div class="page" id="page6">
+        <div class="page" id="pageSuccess">
             <div class="success-content">
                 <div class="success-icon">
                     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">

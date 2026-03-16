@@ -1,181 +1,37 @@
-// Form Data State
-let formData = {
-    sectionA: { country: '', companyName: '', plantLocation: '' },
-    sectionB: { name: '', designation: '', contact: '', email: '' },
-    sectionC: {
-        products: [],
-        fillPac: { units: '', oeeUnits: '', spouts: '', installationDate: '', services: [] },
-        bucketElevator: {
-            units: '',
-            conditionMonitoringUnits: '',
-            type: '',
-            installationDate: '',
-            workingEfficiently: '',
-            beltSlippage: '',
-            maintenanceCost: '',
-            services: [],
-            suggestions: ''
-        }
-    },
-    sectionD_FillPac: [],
-    sectionD_BucketElevator: []
-};
+import re
 
-let isEmailVerified = false;
-let pageFlow = ['page0', 'page1', 'page2', 'page3', 'pageSuccess'];
-let currentPageIndex = 0;
+FILE_PATH = r"j:\Beumer_FeedbackForm\static\script.js"
 
-// Custom Dropdown Class
-class CustomDropdown {
-    constructor(elementId, options, placeholder, onChange, searchable = false) {
-        this.container = document.getElementById(elementId);
-        this.options = options;
-        this.placeholder = placeholder;
-        this.onChange = onChange;
-        this.searchable = searchable;
-        this.isOpen = false;
-        this.selectedValue = '';
-        this.filteredOptions = options;
+with open(FILE_PATH, "r", encoding="utf-8") as f:
+    js_code = f.read()
 
-        this.init();
-    }
+# 1. Update State
+js_code = re.sub(
+    r"sectionD_FillPac: \{[^}]+\},",
+    "sectionD_FillPac: [],",
+    js_code, flags=re.DOTALL
+)
 
-    init() {
-        this.container.innerHTML = `
-            <div class="dropdown-header">
-                <span class="selected-text placeholder">${this.placeholder}</span>
-                <span class="arrow">▼</span>
-            </div>
-            <div class="dropdown-list-container">
-                ${this.searchable ? `
-                    <div class="dropdown-search">
-                        <input type="text" placeholder="Search...">
-                    </div>
-                ` : ''}
-                <ul class="dropdown-list">
-                    ${this.renderOptions(this.options)}
-                </ul>
-            </div>
-        `;
+js_code = re.sub(
+    r"sectionD_BucketElevator: \{[^}]+\}",
+    "sectionD_BucketElevator: []",
+    js_code, flags=re.DOTALL
+)
 
-        this.header = this.container.querySelector('.dropdown-header');
-        this.listContainer = this.container.querySelector('.dropdown-list-container');
-        this.list = this.container.querySelector('.dropdown-list');
-        this.selectedText = this.container.querySelector('.selected-text');
+# 2. Add pageFlow variables
+js_code = js_code.replace(
+    "let currentPage = 0;\nconst totalPages = 7;",
+    "let pageFlow = ['page0', 'page1', 'page2', 'page3', 'pageSuccess'];\nlet currentPageIndex = 0;"
+)
 
-        this.header.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggle();
-        });
+# 3. Remove Dropdown initialization for Units
+js_code = re.sub(r"dropdowns\.fpUnits = new CustomDropdown.*?\}\);\n", "", js_code, flags=re.DOTALL)
+js_code = re.sub(r"dropdowns\.beUnits = new CustomDropdown.*?\}\);\n", "", js_code, flags=re.DOTALL)
 
-        if (this.searchable) {
-            this.searchInput = this.container.querySelector('.dropdown-search input');
-            this.searchInput.addEventListener('click', (e) => e.stopPropagation());
-            this.searchInput.addEventListener('input', (e) => this.filter(e.target.value));
-        }
-
-        document.addEventListener('click', () => this.close());
-    }
-
-    renderOptions(options) {
-        if (options.length === 0) return '<li class="dropdown-no-results">No results found</li>';
-        return options.map(opt => `
-            <li class="dropdown-item ${opt === this.selectedValue ? 'selected' : ''}" data-value="${opt}">
-                ${opt}
-            </li>
-        `).join('');
-    }
-
-    toggle() {
-        this.isOpen ? this.close() : this.open();
-    }
-
-    open() {
-        // Close other dropdowns
-        document.querySelectorAll('.custom-dropdown').forEach(d => {
-            if (d !== this.container) d.classList.remove('open');
-        });
-
-        this.isOpen = true;
-        this.container.classList.add('open');
-        if (this.searchable) {
-            setTimeout(() => this.searchInput.focus(), 100);
-        }
-    }
-
-    close() {
-        this.isOpen = false;
-        this.container.classList.remove('open');
-    }
-
-    filter(query) {
-        this.filteredOptions = this.options.filter(opt =>
-            opt.toLowerCase().includes(query.toLowerCase())
-        );
-        this.list.innerHTML = this.renderOptions(this.filteredOptions);
-        this.attachItemListeners();
-    }
-
-    attachItemListeners() {
-        this.list.querySelectorAll('.dropdown-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.select(item.dataset.value);
-            });
-        });
-    }
-
-    select(value) {
-        this.selectedValue = value;
-        this.selectedText.innerText = value;
-        this.selectedText.classList.remove('placeholder');
-        this.onChange(value);
-        this.close();
-        this.container.classList.remove('error');
-    }
-
-    setError(isError) {
-        if (isError) this.container.classList.add('error');
-        else this.container.classList.remove('error');
-    }
-}
-
-// Initialize Dropdowns
-const countries = ['India', 'Germany', 'USA', 'Japan', 'France', 'UK', 'China', 'Brazil'];
-const designations = ['Manager', 'Engineer', 'Operator', 'Technician', 'Analyst', 'Director'];
-
-let dropdowns = {};
-
-window.onload = () => {
-    dropdowns.country = new CustomDropdown('dropdown-country', countries, 'Select Country', (val) => {
-        formData.sectionA.country = val;
-    }, true);
-
-    dropdowns.designation = new CustomDropdown('dropdown-designation', designations, 'Select Designation', (val) => {
-        formData.sectionB.designation = val;
-    });
-
-    
-    dropdowns.fpOeeUnits = new CustomDropdown('dropdown-fpOeeUnits', ['1', '2', '3', '4', '5+'], 'Select', (val) => {
-        formData.sectionC.fillPac.oeeUnits = val;
-    });
-
-    dropdowns.fpSpouts = new CustomDropdown('dropdown-fpSpouts', ['8', '12', '16', '24'], 'Select', (val) => {
-        formData.sectionC.fillPac.spouts = val;
-    });
-
-    
-    dropdowns.beMonitoring = new CustomDropdown('dropdown-beMonitoring', ['1', '2', '3+'], 'Select', (val) => {
-        formData.sectionC.bucketElevator.conditionMonitoringUnits = val;
-    });
-
-    Object.values(dropdowns).forEach(d => d.attachItemListeners());
-
-    renderNavDots();
-};
-
-// Navigation Logic
-function renderNavDots() {
+# 4. Update renderNavDots
+js_code = re.sub(
+    r"function renderNavDots\(\) \{.*?\}",
+    """function renderNavDots() {
     const navDots = document.getElementById('navDots');
     navDots.innerHTML = pageFlow.map((pageId, i) => {
         return `
@@ -183,16 +39,12 @@ function renderNavDots() {
                  onclick="handleDotClick(${i})"></div>
         `;
     }).join('');
-}).map((_, i) => {
-        const isApplicable = isPageApplicable(i);
-        return `
-            <div class="dot ${currentPage === i ? 'active' : ''} ${i > currentPage || !isApplicable ? 'disabled' : ''}" 
-                 onclick="handleDotClick(${i})"></div>
-        `;
-    }).join('');
-}
+}""",
+    js_code, count=1, flags=re.DOTALL
+)
 
-
+# 5. Update Navigation Logic
+nav_funcs = """
 function handleDotClick(index) {
     if (index <= currentPageIndex) {
         goToPage(index);
@@ -236,12 +88,20 @@ function prevPage() {
         goToPage(currentPageIndex - 1);
     }
 }
+"""
+js_code = re.sub(
+    r"function handleDotClick\(index\).*?function validatePage\(\)",
+    nav_funcs + "\n// Validation Logic\function validatePage()",
+    js_code, flags=re.DOTALL
+)
+js_code = js_code.replace("function validatePage()", "function validatePage()")
 
-// Validation Logicunction validatePage() {
+# 6. Update Validation Logic (replace the whole validatePage function)
+validate_new = """function validatePage() {
     clearErrors();
     let isValid = true;
 
-    if (currentPage === 1) { // Section A
+    if (currentPageIndex === 1) { // Section A
         if (!formData.sectionA.country) { dropdowns.country.setError(true); isValid = false; }
         const companyName = document.getElementById('companyName');
         if (!companyName.value) { companyName.classList.add('error'); isValid = false; }
@@ -251,7 +111,7 @@ function prevPage() {
         formData.sectionA.companyName = companyName.value;
         formData.sectionA.plantLocation = plantLocation.value;
 
-    } else if (currentPage === 2) { // Section B
+    } else if (currentPageIndex === 2) { // Section B
         const name = document.getElementById('name');
         if (!name.value) { name.classList.add('error'); isValid = false; }
 
@@ -273,7 +133,7 @@ function prevPage() {
         formData.sectionB.contact = document.getElementById('contact').value; // Optional
         formData.sectionB.email = email.value;
 
-    } else if (currentPage === 3) { // Section C
+    } else if (currentPageIndex === 3) { // Section C
         const products = Array.from(document.querySelectorAll('input[name="product"]:checked')).map(cb => cb.value);
         if (products.length === 0) {
             document.getElementById('product-selection').style.border = '1px solid var(--accent-color)';
@@ -282,7 +142,10 @@ function prevPage() {
         formData.sectionC.products = products;
 
         if (products.includes('FillPac')) {
-            if (!formData.sectionC.fillPac.units) { dropdowns.fpUnits.setError(true); isValid = false; }
+            const fpUnitsInput = document.getElementById('fpUnits');
+            if (!fpUnitsInput.value || fpUnitsInput.value < 1) { fpUnitsInput.classList.add('error'); isValid = false; }
+            else { formData.sectionC.fillPac.units = parseInt(fpUnitsInput.value, 10); }
+
             if (!formData.sectionC.fillPac.oeeUnits) { dropdowns.fpOeeUnits.setError(true); isValid = false; }
             if (!formData.sectionC.fillPac.spouts) { dropdowns.fpSpouts.setError(true); isValid = false; }
             const fpDate = document.getElementById('fpDate');
@@ -292,7 +155,10 @@ function prevPage() {
         }
 
         if (products.includes('BucketElevator')) {
-            if (!formData.sectionC.bucketElevator.units) { dropdowns.beUnits.setError(true); isValid = false; }
+            const beUnitsInput = document.getElementById('beUnits');
+            if (!beUnitsInput.value || beUnitsInput.value < 1) { beUnitsInput.classList.add('error'); isValid = false; }
+            else { formData.sectionC.bucketElevator.units = parseInt(beUnitsInput.value, 10); }
+
             if (!formData.sectionC.bucketElevator.conditionMonitoringUnits) { dropdowns.beMonitoring.setError(true); isValid = false; }
             const beType = document.getElementById('beType');
             if (!beType.value) { beType.classList.add('error'); isValid = false; }
@@ -311,24 +177,22 @@ function prevPage() {
             formData.sectionC.bucketElevator.beltSlippage = beSlippage.value;
             formData.sectionC.bucketElevator.maintenanceCost = beCost.value;
             formData.sectionC.bucketElevator.services = Array.from(document.querySelectorAll('#beServices input:checked')).map(cb => cb.value);
-            
-            // beSuggestions does not exist on Page 3 HTML, moving it to Page 6 if needed 
-            // but for now removing the null reference that breaks navigation.
         }
-    } else if (currentPage === 4) { // Section D - FillPac Feedback
+    } else if (pageFlow[currentPageIndex].startsWith('page_fp_')) {
+        const unitNum = parseInt(pageFlow[currentPageIndex].split('_')[2], 10);
         const radioFields = [
-            { name: 'fp_oee_accurate', key: 'oeeAccurate' },
-            { name: 'fp_perf_accurate', key: 'perfAccurate' },
-            { name: 'fp_qual_accurate', key: 'qualAccurate' },
-            { name: 'fp_avail_accurate', key: 'availAccurate' },
-            { name: 'fp_bags_match', key: 'bagsMatch' },
-            { name: 'fp_data_freq', key: 'dataFreq' },
-            { name: 'fp_bottlenecks', key: 'bottlenecks' },
-            { name: 'fp_useful_metric', key: 'usefulMetric' },
-            { name: 'fp_missing_features', key: 'missingFeatures' },
-            { name: 'fp_fault_info', key: 'faultInfo' },
-            { name: 'fp_bag_info', key: 'bagInfo' },
-            { name: 'fp_user_friendly', key: 'userFriendly' }
+            { name: `fp_oee_accurate_${unitNum}`, key: 'oeeAccurate' },
+            { name: `fp_perf_accurate_${unitNum}`, key: 'perfAccurate' },
+            { name: `fp_qual_accurate_${unitNum}`, key: 'qualAccurate' },
+            { name: `fp_avail_accurate_${unitNum}`, key: 'availAccurate' },
+            { name: `fp_bags_match_${unitNum}`, key: 'bagsMatch' },
+            { name: `fp_data_freq_${unitNum}`, key: 'dataFreq' },
+            { name: `fp_bottlenecks_${unitNum}`, key: 'bottlenecks' },
+            { name: `fp_useful_metric_${unitNum}`, key: 'usefulMetric' },
+            { name: `fp_missing_features_${unitNum}`, key: 'missingFeatures' },
+            { name: `fp_fault_info_${unitNum}`, key: 'faultInfo' },
+            { name: `fp_bag_info_${unitNum}`, key: 'bagInfo' },
+            { name: `fp_user_friendly_${unitNum}`, key: 'userFriendly' }
         ];
 
         radioFields.forEach(field => {
@@ -338,22 +202,23 @@ function prevPage() {
                 if (firstInput) firstInput.closest('.input-group').classList.add('error');
                 isValid = false;
             } else {
-                formData.sectionD_FillPac[field.key] = selected.value;
+                formData.sectionD_FillPac[unitNum - 1][field.key] = selected.value;
             }
         });
 
-        formData.sectionD_FillPac.visualizations = document.getElementById('fpVisualizations').value;
-        formData.sectionD_FillPac.comments = document.getElementById('fpComments').value;
+        formData.sectionD_FillPac[unitNum - 1].visualizations = document.getElementById(`fpVisualizations_${unitNum}`).value;
+        formData.sectionD_FillPac[unitNum - 1].comments = document.getElementById(`fpComments_${unitNum}`).value;
 
-    } else if (currentPage === 5) { // Section D - Bucket Elevator Feedback
+    } else if (pageFlow[currentPageIndex].startsWith('page_be_')) {
+        const unitNum = parseInt(pageFlow[currentPageIndex].split('_')[2], 10);
         const beRadioFields = [
-            { name: 'be_understanding', key: 'understanding' },
-            { name: 'be_effectiveness', key: 'effectiveness' },
-            { name: 'be_training_satisfaction', key: 'trainingSatisfaction' },
-            { name: 'be_user_friendly', key: 'userFriendly' },
-            { name: 'be_usage_freq', key: 'usageFreq' },
-            { name: 'be_reduced_breakdowns', key: 'reducedBreakdowns' },
-            { name: 'be_support_rating', key: 'supportRating' }
+            { name: `be_understanding_${unitNum}`, key: 'understanding' },
+            { name: `be_effectiveness_${unitNum}`, key: 'effectiveness' },
+            { name: `be_training_satisfaction_${unitNum}`, key: 'trainingSatisfaction' },
+            { name: `be_user_friendly_${unitNum}`, key: 'userFriendly' },
+            { name: `be_usage_freq_${unitNum}`, key: 'usageFreq' },
+            { name: `be_reduced_breakdowns_${unitNum}`, key: 'reducedBreakdowns' },
+            { name: `be_support_rating_${unitNum}`, key: 'supportRating' }
         ];
 
         beRadioFields.forEach(field => {
@@ -363,160 +228,24 @@ function prevPage() {
                 if (firstInput) firstInput.closest('.input-group').classList.add('error');
                 isValid = false;
             } else {
-                formData.sectionD_BucketElevator[field.key] = selected.value;
+                formData.sectionD_BucketElevator[unitNum - 1][field.key] = selected.value;
             }
         });
 
-        formData.sectionD_BucketElevator.suggestions = document.getElementById('beSuggestionsCM').value;
+        formData.sectionD_BucketElevator[unitNum - 1].suggestions = document.getElementById(`beSuggestionsCM_${unitNum}`).value;
     }
 
     return isValid;
 }
+"""
+js_code = re.sub(
+    r"function validatePage\(\) \{.*?\}\n\nfunction clearErrors\(\)",
+    validate_new + "\n\nfunction clearErrors()",
+    js_code, flags=re.DOTALL
+)
 
-function clearErrors() {
-    document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-    document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('error'));
-    document.getElementById('product-selection').style.border = 'none';
-    if (document.getElementById('otpStatus')) {
-        document.getElementById('otpStatus').innerText = '';
-        document.getElementById('otpStatus').className = 'otp-status';
-    }
-}
-
-// ── OTP Logic ──────────────────────────────────────────────────────────────
-async function send_otp_request(email) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
-    try {
-        const response = await fetch('/api/send-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        return { ok: response.ok, status: response.status, data: await response.json() };
-    } catch (err) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-            throw new Error('Request timed out. Please check your internet connection.');
-        }
-        throw err;
-    }
-}
-
-async function sendOtp() {
-    const email = document.getElementById('email').value;
-    if (!email || !email.includes('@')) {
-        alert('Please enter a valid email address');
-        return;
-    }
-
-    const btn = document.getElementById('sendOtpBtn');
-    const otpStatus = document.getElementById('otpStatus');
-    
-    btn.disabled = true;
-    btn.innerText = 'Sending...';
-    otpStatus.innerText = 'Attempting to send code...';
-    otpStatus.className = 'otp-status';
-
-    try {
-        const result = await send_otp_request(email);
-        
-        if (result.ok) {
-            document.getElementById('otpGroup').style.display = 'block';
-            otpStatus.innerText = 'OTP sent successfully! Please check your inbox.';
-            otpStatus.className = 'otp-status success';
-            btn.innerText = 'Resend OTP';
-        } else {
-            const errorMsg = result.data.detail || 'Service unavailable';
-            if (result.status === 429) {
-                otpStatus.innerText = errorMsg; // Already includes "Please wait X seconds"
-            } else {
-                otpStatus.innerText = `Error: ${errorMsg}`;
-            }
-            otpStatus.className = 'otp-status error';
-            btn.innerText = 'Retry Sending';
-            console.error('OTP Error:', result.data);
-        }
-    } catch (err) {
-        console.error('OTP Fetch Failure:', err);
-        otpStatus.innerText = `Network Error: ${err.message || 'Check connection'}`;
-        otpStatus.className = 'otp-status error';
-        btn.innerText = 'Send OTP';
-    } finally {
-        btn.disabled = false;
-    }
-}
-
-async function verifyOtp() {
-    const email = document.getElementById('email').value;
-    const otp = document.getElementById('otpInput').value;
-    if (otp.length !== 6) {
-        alert('Please enter a 6-digit OTP');
-        return;
-    }
-
-    const btn = document.getElementById('verifyOtpBtn');
-    btn.disabled = true;
-    btn.innerText = 'Verifying...';
-
-    try {
-        const response = await fetch('/api/verify-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, otp })
-        });
-        const data = await response.json();
-        if (response.ok) {
-            isEmailVerified = true;
-            document.getElementById('otpGroup').innerHTML = `
-                <div class="verified-badge">
-                    <span>✅ Email Verified</span>
-                </div>
-            `;
-            
-            // Store JWT token for subsequent requests
-            if (data.access_token) {
-                localStorage.setItem('feedback_token', data.access_token);
-            }
-            
-            document.getElementById('email').disabled = true;
-            document.getElementById('sendOtpBtn').style.display = 'none';
-            document.getElementById('otpStatus').innerText = 'Verification successful! Moving to next page...';
-            document.getElementById('otpStatus').className = 'otp-status success';
-
-            // Auto-advance after a brief delay
-            setTimeout(() => {
-                nextPage();
-            }, 1000);
-        } else {
-            const errorMsg = data.detail || 'Invalid OTP. Please try again.';
-            document.getElementById('otpStatus').innerText = errorMsg;
-            document.getElementById('otpStatus').className = 'otp-status error';
-        }
-    } catch (err) {
-        console.error('OTP Verification Error:', err);
-        const statusEl = document.getElementById('otpStatus');
-        if (statusEl) {
-            statusEl.innerText = 'Network error or server is down. Please try again.';
-            statusEl.className = 'otp-status error';
-        }
-        alert('Error connecting to verification service. Please check your connection.');
-    } finally {
-        btn.disabled = false;
-        btn.innerText = 'Verify';
-    }
-}
-
-function resetEmailVerification() {
-    isEmailVerified = false;
-    document.getElementById('otpGroup').style.display = 'none';
-    document.getElementById('otpStatus').innerText = '';
-}
-
-
+# 7. Inject the setupDynamicPages and template generators before toggleProductDetails
+html_gen_funcs = """
 function setupDynamicPages() {
     const container = document.getElementById('dynamicFeedbackPages');
     container.innerHTML = '';
@@ -740,44 +469,14 @@ function createBucketElevatorFeedbackHTML(unitNum, pageId) {
 }
 
 // Section C Logic
-function toggleProductDetails() {
-    const products = Array.from(document.querySelectorAll('input[name="product"]:checked')).map(cb => cb.value);
-    formData.sectionC.products = products; // Update state immediately for logic
-    document.getElementById('fillPacDetails').style.display = products.includes('FillPac') ? 'block' : 'none';
-    document.getElementById('beDetails').style.display = products.includes('BucketElevator') ? 'block' : 'none';
-    renderNavDots(); // Update dots as applicability changed
-    updateButtonText(); // Update Next/Submit label based on selected products
-}
+"""
 
-// Submit Logic
-async function submitForm() {
-    try {
-        const token = localStorage.getItem('feedback_token');
-        const headers = { 'Content-Type': 'application/json' };
-        
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
+js_code = js_code.replace("// Section C Logic\n", html_gen_funcs)
 
-        const response = await fetch('/api/submit-feedback', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(formData)
-        });
-        
-        const data = await response.json();
-        
-        if (response.status === 401) {
-            alert('Your session has expired. Please verify your email again.');
-            goToPage(2); // Go back to contact details page
-            return;
-        }
+# Update submitForm to use pageSuccess correctly, actually we just need to use indexOf('pageSuccess')
+js_code = js_code.replace("goToPage(6);", "goToPage(pageFlow.indexOf('pageSuccess'));")
 
-        if (data.status === 'success') {
-            goToPage(pageFlow.indexOf('pageSuccess')); // Success page
-        }
-    } catch (error) {
-        console.error('Error submitting form:', error);
-        alert('Failed to submit. Is the backend running?');
-    }
-}
+with open(FILE_PATH, "w", encoding="utf-8") as f:
+    f.write(js_code)
+
+print("success!")

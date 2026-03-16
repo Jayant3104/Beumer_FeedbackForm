@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Union
 import smtplib
 import random
 import string
@@ -187,8 +187,8 @@ class FeedbackData(BaseModel):
     sectionA: Dict[str, Any]
     sectionB: Dict[str, Any]
     sectionC: Dict[str, Any]
-    sectionD_FillPac: Optional[Dict[str, Any]] = None
-    sectionD_BucketElevator: Optional[Dict[str, Any]] = None
+    sectionD_FillPac: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
+    sectionD_BucketElevator: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
 
 
 # ─── JWT Helpers ──────────────────────────────────────────────────────────────
