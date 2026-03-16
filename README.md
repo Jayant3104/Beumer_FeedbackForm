@@ -68,6 +68,157 @@ uvicorn api.index:app --reload
 3. **Environment Variables**: Add `MONGODB_URL`, `SMTP_USER`, `SMTP_PASSWORD`, etc., in Vercel Project Settings.
 4. **Deploy**: Vercel will automatically detect the Python API and deploy it as a Serverless Function.
 
----
+## Flowchart
 
----
+```mermaid
+graph TD
+
+    A[Application Start] --> B[Load Environment Variables using load_dotenv]
+
+    B --> C[Initialize FastAPI App]
+    C --> D[Enable CORS Middleware]
+    D --> E[Configure Static Directory]
+    E --> F[Mount Static Files]
+
+    F --> G[Load SMTP Configuration]
+    G --> H[Load JWT Configuration]
+
+    H --> I[MongoDB Configuration]
+
+    I --> J{MONGO_USER & PASS Provided?}
+
+    J -->|Yes| K[Build MongoDB Atlas URL]
+    J -->|No| L[Use MONGODB_URL]
+
+    K --> M[escape_mongodb_url Function]
+    L --> M
+
+    M --> N[Create AsyncIOMotorClient]
+    N --> O[Connect to Database]
+    O --> P[Create feedback_collection]
+
+    P --> Q[API Router /api Initialized]
+
+    %% MODELS
+
+    Q --> R[Models Defined]
+
+    R --> S[OtpRequest Class\nemail: EmailStr]
+    R --> T[OtpVerify Class\nemail: EmailStr\notp: str]
+    R --> U[FeedbackData Class\nsectionA\nsectionB\nsectionC\nsectionD_FillPac\nsectionD_BucketElevator]
+
+    %% OTP REQUEST FLOW
+
+    S --> V[POST /api/send-otp]
+
+    V --> W[Validate Request Using OtpRequest]
+    W --> X{SMTP Configured?}
+
+    X -->|No| Y[Return 500 Mail Server Not Configured]
+
+    X -->|Yes| Z[Check OTP Cooldown]
+
+    Z --> AA{Last OTP < 60s?}
+
+    AA -->|Yes| AB[Return 429 Too Many Requests]
+    AA -->|No| AC[Generate OTP using generate_otp]
+
+    AC --> AD[Store OTP in otp_store Dictionary]
+
+    AD --> AE[Add Expiration 10 Minutes]
+
+    AE --> AF[Send Email using send_otp_email]
+
+    AF --> AG{SMTP_PORT == 465?}
+
+    AG -->|Yes| AH[SMTP_SSL Connection]
+    AG -->|No| AI[SMTP STARTTLS Connection]
+
+    AH --> AJ[Login SMTP]
+    AI --> AJ
+
+    AJ --> AK[Send OTP Email]
+
+    AK --> AL[Return Success Response]
+
+    %% OTP VERIFICATION FLOW
+
+    T --> AM[POST /api/verify-otp]
+
+    AM --> AN[Validate Request Using OtpVerify]
+
+    AN --> AO{OTP Exists in otp_store?}
+
+    AO -->|No| AP[Return Error No OTP Found]
+
+    AO -->|Yes| AQ[Check OTP Expiration]
+
+    AQ --> AR{Expired?}
+
+    AR -->|Yes| AS[Delete OTP]
+    AS --> AT[Return Expired Error]
+
+    AR -->|No| AU[Compare OTP]
+
+    AU --> AV{OTP Correct?}
+
+    AV -->|No| AW[Return Incorrect OTP]
+
+    AV -->|Yes| AX[Delete OTP Record]
+
+    AX --> AY[Create JWT Token using create_access_token]
+
+    AY --> AZ[Return access_token]
+
+    %% JWT AUTHENTICATION
+
+    AZ --> BA[User Stores Token]
+
+    BA --> BB[User Submits Feedback]
+
+    %% FEEDBACK FLOW
+
+    U --> BC[POST /api/submit-feedback]
+
+    BC --> BD[Authorization Header Required]
+
+    BD --> BE[HTTPBearer Extract Token]
+
+    BE --> BF[get_current_user Function]
+
+    BF --> BG[Decode JWT]
+
+    BG --> BH{Token Valid?}
+
+    BH -->|No| BI[Return 401 Unauthorized]
+
+    BH -->|Yes| BJ[Extract Email]
+
+    BJ --> BK[Validate Request using FeedbackData]
+
+    BK --> BL[Convert Model to Dictionary]
+
+    BL --> BM[Add Metadata\nsubmitted_by=email\ncreated_at=time]
+
+    BM --> BN[Insert into MongoDB feedback_collection]
+
+    BN --> BO[Return Success Response]
+
+    %% CLEANUP
+
+    BO --> BP[Background Task cleanup_expired_otps]
+
+    BP --> BQ[Scan otp_store]
+
+    BQ --> BR[Delete Expired OTPs]
+
+    BR --> BS[System Ready for Next Request]
+
+    %% HEALTH CHECK
+
+    Q --> BT[GET /api/health]
+    BT --> BU[Return status ok]
+```
+
+
+
