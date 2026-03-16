@@ -4,7 +4,7 @@ let formData = {
     sectionB: { name: '', designation: '', contact: '', email: '' },
     sectionC: {
         products: [],
-        fillPac: { units: '', oeeUnits: '', spouts: '', installationDate: '', services: [] },
+        fillPac: { units: '', oeeUnits: '', services: [] },
         bucketElevator: {
             units: '',
             conditionMonitoringUnits: '',
@@ -160,10 +160,6 @@ window.onload = () => {
         formData.sectionC.fillPac.oeeUnits = val;
     });
 
-    dropdowns.fpSpouts = new CustomDropdown('dropdown-fpSpouts', ['8', '12', '16', '24'], 'Select', (val) => {
-        formData.sectionC.fillPac.spouts = val;
-    });
-
     
     dropdowns.beMonitoring = new CustomDropdown('dropdown-beMonitoring', ['1', '2', '3+'], 'Select', (val) => {
         formData.sectionC.bucketElevator.conditionMonitoringUnits = val;
@@ -281,10 +277,6 @@ function validatePage() {
             else { formData.sectionC.fillPac.units = parseInt(fpUnitsInput.value, 10); }
 
             if (!formData.sectionC.fillPac.oeeUnits) { dropdowns.fpOeeUnits.setError(true); isValid = false; }
-            if (!formData.sectionC.fillPac.spouts) { dropdowns.fpSpouts.setError(true); isValid = false; }
-            const fpDate = document.getElementById('fpDate');
-            if (!fpDate.value) { fpDate.classList.add('error'); isValid = false; }
-            formData.sectionC.fillPac.installationDate = fpDate.value;
             formData.sectionC.fillPac.services = Array.from(document.querySelectorAll('#fpServices input:checked')).map(cb => cb.value);
         }
 
@@ -339,6 +331,14 @@ function validatePage() {
                 formData.sectionD_FillPac[unitNum - 1][field.key] = selected.value;
             }
         });
+
+        const fpSpouts = document.getElementById(`fpSpouts_${unitNum}`);
+        if (!fpSpouts.value) { fpSpouts.classList.add('error'); isValid = false; }
+        else { formData.sectionD_FillPac[unitNum - 1].spouts = fpSpouts.value; }
+
+        const fpDate = document.getElementById(`fpDate_${unitNum}`);
+        if (!fpDate.value) { fpDate.classList.add('error'); isValid = false; }
+        else { formData.sectionD_FillPac[unitNum - 1].installationDate = fpDate.value; }
 
         formData.sectionD_FillPac[unitNum - 1].visualizations = document.getElementById(`fpVisualizations_${unitNum}`).value;
         formData.sectionD_FillPac[unitNum - 1].comments = document.getElementById(`fpComments_${unitNum}`).value;
@@ -558,6 +558,20 @@ function createFillPacFeedbackHTML(unitNum, pageId) {
             </div>
 
             <div class="feedback-grid">
+                <div class="form-group">
+                    <label>Types of FillPac (Spouts)</label>
+                    <select id="fpSpouts_${unitNum}" class="custom-dropdown" style="padding: 12px; width: 100%; border-radius: 12px; border: 1.5px solid var(--border-color); appearance: auto;">
+                        <option value="" disabled selected>Select</option>
+                        <option value="8">8</option>
+                        <option value="12">12</option>
+                        <option value="16">16</option>
+                        <option value="24">24</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Installation Date</label>
+                    <input type="date" id="fpDate_${unitNum}">
+                </div>
                 <div class="form-group">
                     <label>Is OEE data accurate?</label>
                     <div class="radio-group input-group">
