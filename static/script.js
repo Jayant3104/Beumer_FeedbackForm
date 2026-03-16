@@ -183,13 +183,6 @@ function renderNavDots() {
                  onclick="handleDotClick(${i})"></div>
         `;
     }).join('');
-}).map((_, i) => {
-        const isApplicable = isPageApplicable(i);
-        return `
-            <div class="dot ${currentPage === i ? 'active' : ''} ${i > currentPage || !isApplicable ? 'disabled' : ''}" 
-                 onclick="handleDotClick(${i})"></div>
-        `;
-    }).join('');
 }
 
 
@@ -237,11 +230,12 @@ function prevPage() {
     }
 }
 
-// Validation Logicunction validatePage() {
+// Validation Logic
+function validatePage() {
     clearErrors();
     let isValid = true;
 
-    if (currentPage === 1) { // Section A
+    if (currentPageIndex === 1) { // Section A
         if (!formData.sectionA.country) { dropdowns.country.setError(true); isValid = false; }
         const companyName = document.getElementById('companyName');
         if (!companyName.value) { companyName.classList.add('error'); isValid = false; }
@@ -251,7 +245,7 @@ function prevPage() {
         formData.sectionA.companyName = companyName.value;
         formData.sectionA.plantLocation = plantLocation.value;
 
-    } else if (currentPage === 2) { // Section B
+    } else if (currentPageIndex === 2) { // Section B
         const name = document.getElementById('name');
         if (!name.value) { name.classList.add('error'); isValid = false; }
 
@@ -273,7 +267,7 @@ function prevPage() {
         formData.sectionB.contact = document.getElementById('contact').value; // Optional
         formData.sectionB.email = email.value;
 
-    } else if (currentPage === 3) { // Section C
+    } else if (currentPageIndex === 3) { // Section C
         const products = Array.from(document.querySelectorAll('input[name="product"]:checked')).map(cb => cb.value);
         if (products.length === 0) {
             document.getElementById('product-selection').style.border = '1px solid var(--accent-color)';
@@ -282,7 +276,10 @@ function prevPage() {
         formData.sectionC.products = products;
 
         if (products.includes('FillPac')) {
-            if (!formData.sectionC.fillPac.units) { dropdowns.fpUnits.setError(true); isValid = false; }
+            const fpUnitsInput = document.getElementById('fpUnits');
+            if (!fpUnitsInput.value || fpUnitsInput.value < 1) { fpUnitsInput.classList.add('error'); isValid = false; }
+            else { formData.sectionC.fillPac.units = parseInt(fpUnitsInput.value, 10); }
+
             if (!formData.sectionC.fillPac.oeeUnits) { dropdowns.fpOeeUnits.setError(true); isValid = false; }
             if (!formData.sectionC.fillPac.spouts) { dropdowns.fpSpouts.setError(true); isValid = false; }
             const fpDate = document.getElementById('fpDate');
@@ -292,7 +289,10 @@ function prevPage() {
         }
 
         if (products.includes('BucketElevator')) {
-            if (!formData.sectionC.bucketElevator.units) { dropdowns.beUnits.setError(true); isValid = false; }
+            const beUnitsInput = document.getElementById('beUnits');
+            if (!beUnitsInput.value || beUnitsInput.value < 1) { beUnitsInput.classList.add('error'); isValid = false; }
+            else { formData.sectionC.bucketElevator.units = parseInt(beUnitsInput.value, 10); }
+
             if (!formData.sectionC.bucketElevator.conditionMonitoringUnits) { dropdowns.beMonitoring.setError(true); isValid = false; }
             const beType = document.getElementById('beType');
             if (!beType.value) { beType.classList.add('error'); isValid = false; }
@@ -311,24 +311,22 @@ function prevPage() {
             formData.sectionC.bucketElevator.beltSlippage = beSlippage.value;
             formData.sectionC.bucketElevator.maintenanceCost = beCost.value;
             formData.sectionC.bucketElevator.services = Array.from(document.querySelectorAll('#beServices input:checked')).map(cb => cb.value);
-            
-            // beSuggestions does not exist on Page 3 HTML, moving it to Page 6 if needed 
-            // but for now removing the null reference that breaks navigation.
         }
-    } else if (currentPage === 4) { // Section D - FillPac Feedback
+    } else if (pageFlow[currentPageIndex].startsWith('page_fp_')) {
+        const unitNum = parseInt(pageFlow[currentPageIndex].split('_')[2], 10);
         const radioFields = [
-            { name: 'fp_oee_accurate', key: 'oeeAccurate' },
-            { name: 'fp_perf_accurate', key: 'perfAccurate' },
-            { name: 'fp_qual_accurate', key: 'qualAccurate' },
-            { name: 'fp_avail_accurate', key: 'availAccurate' },
-            { name: 'fp_bags_match', key: 'bagsMatch' },
-            { name: 'fp_data_freq', key: 'dataFreq' },
-            { name: 'fp_bottlenecks', key: 'bottlenecks' },
-            { name: 'fp_useful_metric', key: 'usefulMetric' },
-            { name: 'fp_missing_features', key: 'missingFeatures' },
-            { name: 'fp_fault_info', key: 'faultInfo' },
-            { name: 'fp_bag_info', key: 'bagInfo' },
-            { name: 'fp_user_friendly', key: 'userFriendly' }
+            { name: `fp_oee_accurate_${unitNum}`, key: 'oeeAccurate' },
+            { name: `fp_perf_accurate_${unitNum}`, key: 'perfAccurate' },
+            { name: `fp_qual_accurate_${unitNum}`, key: 'qualAccurate' },
+            { name: `fp_avail_accurate_${unitNum}`, key: 'availAccurate' },
+            { name: `fp_bags_match_${unitNum}`, key: 'bagsMatch' },
+            { name: `fp_data_freq_${unitNum}`, key: 'dataFreq' },
+            { name: `fp_bottlenecks_${unitNum}`, key: 'bottlenecks' },
+            { name: `fp_useful_metric_${unitNum}`, key: 'usefulMetric' },
+            { name: `fp_missing_features_${unitNum}`, key: 'missingFeatures' },
+            { name: `fp_fault_info_${unitNum}`, key: 'faultInfo' },
+            { name: `fp_bag_info_${unitNum}`, key: 'bagInfo' },
+            { name: `fp_user_friendly_${unitNum}`, key: 'userFriendly' }
         ];
 
         radioFields.forEach(field => {
@@ -338,22 +336,23 @@ function prevPage() {
                 if (firstInput) firstInput.closest('.input-group').classList.add('error');
                 isValid = false;
             } else {
-                formData.sectionD_FillPac[field.key] = selected.value;
+                formData.sectionD_FillPac[unitNum - 1][field.key] = selected.value;
             }
         });
 
-        formData.sectionD_FillPac.visualizations = document.getElementById('fpVisualizations').value;
-        formData.sectionD_FillPac.comments = document.getElementById('fpComments').value;
+        formData.sectionD_FillPac[unitNum - 1].visualizations = document.getElementById(`fpVisualizations_${unitNum}`).value;
+        formData.sectionD_FillPac[unitNum - 1].comments = document.getElementById(`fpComments_${unitNum}`).value;
 
-    } else if (currentPage === 5) { // Section D - Bucket Elevator Feedback
+    } else if (pageFlow[currentPageIndex].startsWith('page_be_')) {
+        const unitNum = parseInt(pageFlow[currentPageIndex].split('_')[2], 10);
         const beRadioFields = [
-            { name: 'be_understanding', key: 'understanding' },
-            { name: 'be_effectiveness', key: 'effectiveness' },
-            { name: 'be_training_satisfaction', key: 'trainingSatisfaction' },
-            { name: 'be_user_friendly', key: 'userFriendly' },
-            { name: 'be_usage_freq', key: 'usageFreq' },
-            { name: 'be_reduced_breakdowns', key: 'reducedBreakdowns' },
-            { name: 'be_support_rating', key: 'supportRating' }
+            { name: `be_understanding_${unitNum}`, key: 'understanding' },
+            { name: `be_effectiveness_${unitNum}`, key: 'effectiveness' },
+            { name: `be_training_satisfaction_${unitNum}`, key: 'trainingSatisfaction' },
+            { name: `be_user_friendly_${unitNum}`, key: 'userFriendly' },
+            { name: `be_usage_freq_${unitNum}`, key: 'usageFreq' },
+            { name: `be_reduced_breakdowns_${unitNum}`, key: 'reducedBreakdowns' },
+            { name: `be_support_rating_${unitNum}`, key: 'supportRating' }
         ];
 
         beRadioFields.forEach(field => {
@@ -363,11 +362,11 @@ function prevPage() {
                 if (firstInput) firstInput.closest('.input-group').classList.add('error');
                 isValid = false;
             } else {
-                formData.sectionD_BucketElevator[field.key] = selected.value;
+                formData.sectionD_BucketElevator[unitNum - 1][field.key] = selected.value;
             }
         });
 
-        formData.sectionD_BucketElevator.suggestions = document.getElementById('beSuggestionsCM').value;
+        formData.sectionD_BucketElevator[unitNum - 1].suggestions = document.getElementById(`beSuggestionsCM_${unitNum}`).value;
     }
 
     return isValid;
